@@ -13,6 +13,8 @@ uvicorn==0.18.3
 # other dependencies
 
 pyspark
+pandas
 requests
 tabulate
-pandas
+python-dotenv
+databricks-sql-connector

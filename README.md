@@ -1,3 +1,5 @@
+### `.env` included
+
 # IDS-706 Data Engineering Assignment
 ## Mini Project 10 : Introduction_to_PySpark
 
