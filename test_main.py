@@ -1,77 +1,103 @@
-"""
-Test goes here
-"""
-
-import os
 import pytest
-from mylib.lib import (
-    extract,
-    load_data,
-    describe,
-    query,
-    example_transform,
-    start_spark,
-    end_spark,
-)
+from pyspark.sql import SparkSession
+from mylib.extract import extract
+from mylib.transform import transform_data
+from mylib.load import load_data
+from mylib.query import filter_and_save_data  # query.py 추가
 
 
 @pytest.fixture(scope="module")
 def spark():
-    """Fixture for initializing and stopping Spark session for tests"""
-    spark = start_spark("TestApp")
+    """
+    Pytest fixture to initialize a SparkSession for testing.
+    """
+    spark = SparkSession.builder \
+        .appName("Test ETL Pipeline") \
+        .getOrCreate()
     yield spark
-    end_spark(spark)
+    spark.stop()
 
 
-def test_extract():
-    """Test file extraction from URL"""
-    file_path = extract()
-    assert os.path.exists(file_path), "Extracted file does not exist."
+def test_extract(spark):
+    """
+    Test the extract function.
+    """
+    database = "HR_Analytics"
+    raw_table = "Raw_HR_Data"
+
+    # Execute extract
+    extract(table_name=raw_table, database=database)
+
+    # Verify table exists
+    assert spark.catalog.tableExists(f"{database}.{raw_table}"), (
+        f"Table {database}.{raw_table} does not exist after extraction."
+    )
 
 
-def test_load_data(spark):
-    """Test loading data into Spark DataFrame"""
-    df = load_data(spark)
-    assert df is not None, "Data loading failed: DataFrame is None."
+def test_transform(spark):
+    """
+    Test the transform function.
+    """
+    database = "HR_Analytics"
+    raw_table = "Raw_HR_Data"
+    transformed_table = "Employee_Attrition_Data"
+
+    # Execute transform
+    transform_data(database, raw_table, transformed_table)
+
+    # Verify transformed table exists
+    assert spark.catalog.tableExists(f"{database}.{transformed_table}"), (
+        f"Table {database}.{transformed_table} does not exist after transformation."
+    )
 
 
-def test_describe(spark):
-    """Test generating statistical summary of data"""
-    df = load_data(spark)
-    describe(df)  # Expecting only successful execution
+def test_load(spark):
+    """
+    Test the load function.
+    """
+    database = "HR_Analytics"
+    transformed_table = "Employee_Attrition_Data"
+
+    # Execute load
+    try:
+        load_data(database, transformed_table)
+        assert True, (
+            f"Load function executed successfully for {database}.{transformed_table}."
+        )
+    except Exception as e:
+        pytest.fail(f"Load function failed: {e}")
 
 
 def test_query(spark):
-    """Test querying records where Attrition is 'Yes' and 'No' separately"""
-    df = load_data(spark)
-    view_name = "HR_Attrition"
+    """
+    Test the query function (filter_and_save_data).
+    """
+    database = "HR_Analytics"
+    source_table = "Employee_Attrition_Data"
+    target_table = "Employee_Attrition_Data_Filtered"
 
-    # Run query for 'Yes' Attrition
-    query(
-        spark,
-        df,
-        "SELECT Attrition, COUNT(*) AS attrition_count "
-        "FROM HR_Attrition WHERE Attrition = 'Yes' "
-        "GROUP BY Attrition",
-        view_name,
+    # Execute query to filter and save data
+    filter_and_save_data(database, source_table, target_table)
+
+    # Verify filtered table exists
+    assert spark.catalog.tableExists(f"{database}.{target_table}"), (
+        f"Table {database}.{target_table} does not exist after filtering and saving."
     )
 
-    # Run query for 'No' Attrition
-    query(
-        spark,
-        df,
-        "SELECT Attrition, COUNT(*) AS attrition_count "
-        "FROM HR_Attrition WHERE Attrition = 'No' "
-        "GROUP BY Attrition",
-        view_name,
+    # Verify the filtered table has expected columns
+    expected_columns = [
+        "EmployeeNumber",
+        "Age",
+        "Attrition",
+        "Department",
+        "Education",
+        "EducationField",
+        "EmployeeCount",
+    ]
+    actual_columns = [
+        field.name for field in spark.table(f"{database}.{target_table}").schema
+    ]
+    assert expected_columns == actual_columns, (
+        f"Filtered table columns do not match expected columns. "
+        f"Expected: {expected_columns}, Actual: {actual_columns}"
     )
-
-
-def test_example_transform(spark):
-    """Test that example_transform runs and modifies the DataFrame"""
-    df = load_data(spark)
-    example_transform(df)  # Expecting only successful execution
-
-
-if __name__ == "__main__":
-    pytest.main()

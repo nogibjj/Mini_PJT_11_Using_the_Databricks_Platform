@@ -1,19 +1,33 @@
-name: CICD
+name: Databricks CI/CD Pipeline
 
-on: [push]
-
-
-
+on:
+  push:
+    branches:
+      - main
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run: make install
-    - name: lint
-      run: make lint
-    - name: test
-      run: make test
-    - name: format
-      run: make format
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - name: Install Databricks CLI
+        run: pip install databricks-cli
+
+      - name: Configure Databricks CLI
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "[DEFAULT]" > ~/.databrickscfg
+          echo "host = $DATABRICKS_HOST" >> ~/.databrickscfg
+          echo "token = $DATABRICKS_TOKEN" >> ~/.databrickscfg
+
+      - name: Deploy Notebooks to Databricks
+        run: |
+          databricks workspace import_dir ./notebooks /Workspace/YourFolder --overwrite

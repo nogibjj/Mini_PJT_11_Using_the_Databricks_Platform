@@ -1,51 +1,37 @@
-"""
-Main entry point for HR_Attrition analysis
-"""
-
-from mylib.lib import (
-    start_spark,
-    end_spark,
-    extract,
-    load_data,
-    describe,
-    example_transform,
-    log_output,
-    reset_log,  # reset_log
-)
-
+from mylib.extract import extract
+from mylib.transform import transform_data
+from mylib.load import load_data
+from mylib.query import filter_and_save_data
 
 def main():
-    reset_log()  # Clear log at the beginning to avoid duplication
+    """
+    Orchestrates the ETL pipeline.
+    """
+    # Database and table configuration
+    database = "HR_Analytics"
+    raw_table = "Raw_HR_Data"
+    transformed_table = "Employee_Attrition_Data"
+    filtered_table = "Employee_Attrition_Data_Filtered"
 
-    extract()
+    try:
+        print("Extracting data...")
+        extract(table_name=raw_table, database=database)
 
-    spark = start_spark("HR_Attrition")
+        print("Transforming data...")
+        transform_data(database, raw_table, transformed_table)
 
-    df = load_data(spark)
-    describe(df)
+        print("Loading data...")
+        load_data(database, transformed_table)
 
-    run_query(spark, df, "Yes")
-    run_query(spark, df, "No")
-
-    example_transform(df)
-    end_spark(spark)
+        print("Filtering data and saving to new table...")
+        filter_and_save_data(database, transformed_table, filtered_table)
 
 
-def run_query(spark, df, attrition_value):
-    """Filter by Attrition value and log the results."""
-
-    df.createOrReplaceTempView("HR_Attrition")
-
-    query = f"SELECT * FROM HR_Attrition WHERE Attrition = '{attrition_value}'"
-    result = spark.sql(query)
-
-    log_output(
-        f"Results for Attrition = '{attrition_value}'",
-        result.toPandas().to_markdown(),
-        query,
-    )
-    result.show(truncate=False)
+    except Exception as e:
+        print(f"ETL pipeline failed: {e}")
+        raise
 
 
 if __name__ == "__main__":
     main()
+
