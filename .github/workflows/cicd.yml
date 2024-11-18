@@ -1,33 +1,43 @@
-name: Databricks CI/CD Pipeline
-
+name: CI
 on:
   push:
-    branches:
-      - main
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:  # Define environment variables globally for the job
+      SERVER_HOSTNAME: ${{ secrets.SERVER_HOSTNAME }}
+      ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+      
+    steps:
+      - uses: actions/checkout@v3
+      
+      # Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: "3.10"
+      
+      # Install dependencies
+      - name: Install packages
+        run: make install
 
-      - name: Install Databricks CLI
-        run: pip install databricks-cli
+      # Lint the code
+      - name: Lint
+        run: make lint
 
-      - name: Configure Databricks CLI
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: |
-          echo "[DEFAULT]" > ~/.databrickscfg
-          echo "host = $DATABRICKS_HOST" >> ~/.databrickscfg
-          echo "token = $DATABRICKS_TOKEN" >> ~/.databrickscfg
+      # Run tests
+      - name: Run tests
+        run: make test
 
-      - name: Deploy Notebooks to Databricks
-        run: |
-          databricks workspace import_dir ./notebooks /Workspace/YourFolder --overwrite
+      # Format the code
+      - name: Format
+        run: make format
+
+      # Deploy
+      - name: Deploy
+        run: make deploy

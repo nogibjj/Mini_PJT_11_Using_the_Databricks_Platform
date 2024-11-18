@@ -14,12 +14,15 @@ def transform_data(database, raw_table, transformed_table):
         None
     """
     try:
+        # Initialize SparkSession
         spark = SparkSession.builder.getOrCreate()
 
         # Check if the raw table exists
         if not spark.catalog.tableExists(f"{database}.{raw_table}"):
-            print(f"""Error: Table {database}.{raw_table} 
-                  does not exist. Transformation aborted.""")
+            print(
+                f"Error: Table {database}.{raw_table} does not exist. "
+                "Transformation aborted."
+            )
             return
 
         # Load the table schema dynamically
@@ -29,15 +32,15 @@ def transform_data(database, raw_table, transformed_table):
         column_expressions = []
         for field in schema:
             if str(field.dataType) in [
-                'IntegerType', 
-                'DoubleType', 
-                'FloatType', 
-                'LongType']:  # Numeric columns
-                column_expressions.append(f"""COALESCE({field.name}, 
-                                          0) AS {field.name}""")
+                'IntegerType', 'DoubleType', 'FloatType', 'LongType'
+            ]:  # Numeric columns
+                column_expressions.append(
+                    f"COALESCE({field.name}, 0) AS {field.name}"
+                )
             elif str(field.dataType) == 'StringType':  # String columns
-                column_expressions.append(f"""COALESCE({field.name}, 
-                                          'Unknown') AS {field.name}""")
+                column_expressions.append(
+                    f"COALESCE({field.name}, 'Unknown') AS {field.name}"
+                )
             else:  # Other types (default behavior)
                 column_expressions.append(field.name)
 
@@ -45,17 +48,19 @@ def transform_data(database, raw_table, transformed_table):
         columns_sql = ",\n".join(column_expressions)
 
         # Generate SQL query
-        query = f"""
-        CREATE OR REPLACE TABLE {database}.{transformed_table} AS
-        SELECT
-            {columns_sql}
-        FROM {database}.{raw_table}
-        """
+        query = (
+            f"CREATE OR REPLACE TABLE {database}.{transformed_table} AS "
+            f"SELECT\n"
+            f"{columns_sql}\n"
+            f"FROM {database}.{raw_table}"
+        )
         
         # Execute the query
         spark.sql(query)
-        print(f"""Transformation successful: Data saved to 
-              {database}.{transformed_table}""")
+        print(
+            f"Transformation successful: Data saved to "
+            f"{database}.{transformed_table}"
+        )
 
     except Exception as e:
         print(f"Transformation failed: {e}")

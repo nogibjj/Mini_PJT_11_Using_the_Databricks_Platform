@@ -12,6 +12,7 @@ def filter_and_save_data(database, source_table, target_table):
     Returns:
         None
     """
+    # Initialize SparkSession
     spark = SparkSession.builder.getOrCreate()
 
     # Check if the source table exists
@@ -31,19 +32,23 @@ def filter_and_save_data(database, source_table, target_table):
     ]
 
     # Generate SQL query to select only the specified columns
-    query = f"""
-    CREATE OR REPLACE TABLE {database}.{target_table} AS
-    SELECT {', '.join(selected_columns)}
-    FROM {database}.{source_table}
-    """
+    query = (
+        f"CREATE OR REPLACE TABLE {database}.{target_table} AS "
+        f"SELECT {', '.join(selected_columns)} "
+        f"FROM {database}.{source_table}"
+    )
 
     # Execute the query
     try:
-        print(f"""Executing query to filter and save data to 
-              {database}.{target_table}...""")
+        print(
+            f"Executing query to filter and save data to "
+            f"{database}.{target_table}..."
+        )
         spark.sql(query)
-        print(f"""Filtered data saved successfully to 
-              {database}.{target_table}.""")
+        print(
+            f"Filtered data saved successfully to "
+            f"{database}.{target_table}."
+        )
     except Exception as e:
-        print(f"""Failed to filter and save data: {e}""")
+        print(f"Failed to filter and save data: {e}")
         raise

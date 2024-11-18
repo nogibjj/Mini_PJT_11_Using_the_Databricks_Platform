@@ -12,6 +12,7 @@ def load_data(database, table_name):
     Returns:
         None
     """
+    # Initialize SparkSession
     spark = SparkSession.builder.getOrCreate()
 
     # Check if the table exists
@@ -22,7 +23,7 @@ def load_data(database, table_name):
         )
         return
 
-    # Display the data from the table
+    # Construct and execute the query to display the table data
     query = f"SELECT * FROM `{database}`.`{table_name}`"
     print(f"Executing query: {query}")
     spark.sql(query).show()
