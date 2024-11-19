@@ -32,6 +32,9 @@ jobs:
 
       # Run tests
       - name: Run tests
+        env:
+          SERVER_HOSTNAME: ${{ secrets.SERVER_HOSTNAME }}
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
         run: make test
 
       # Format the code
