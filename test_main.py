@@ -1,71 +1,143 @@
+from pyspark.sql import SparkSession
+from mylib.extract import extract
+from mylib.transform import transform_data
+from mylib.load import load_data
+from mylib.query import filter_and_save_data
 import os
-import requests
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-SERVER_HOSTNAME = os.getenv("SERVER_HOSTNAME")
-ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
-BASE_URL = f"https://{SERVER_HOSTNAME}/api/2.0"
 
-# Validate environment variables
-if not SERVER_HOSTNAME or not ACCESS_TOKEN:
-    raise ValueError("SERVER_HOSTNAME and ACCESS_TOKEN must be set in the .env file.")
-
-def check_file_in_dbfs(dbfs_path: str, use_rest: bool = True) -> bool:
+def create_spark_session():
     """
-    Check if a file exists in DBFS using either REST API or Spark commands.
-
-    Args:
-        dbfs_path (str): The DBFS path to check.
-        use_rest (bool): Whether to use REST API (True) or Spark commands (False).
-
-    Returns:
-        bool: True if the file exists, False otherwise.
+    Initialize a SparkSession.
     """
-    if use_rest:
-        # Use Databricks REST API
-        headers = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
-        endpoint = f"{BASE_URL}/dbfs/get-status"
-        try:
-            response = requests.get(endpoint, headers=headers, json={"path": dbfs_path})
-            response.raise_for_status()  # Raise error if status code is not 200
-            # Check if the file path exists in the response
-            if response.status_code == 200 and "path" in response.json():
-                print(f"File found in DBFS path {dbfs_path}")
-                return True
-            elif response.status_code == 404:
-                print(f"No file found in DBFS path {dbfs_path}")
-                return False
-            else:
-                print(f"API Error: {response.json()}")
-                return False
-        except requests.exceptions.HTTPError as http_err:
-            print(f"HTTP error occurred: {http_err}")
-        except requests.exceptions.RequestException as req_err:
-            print(f"Request error occurred: {req_err}")
-        except Exception as e:
-            print(f"Unexpected error while checking DBFS path {dbfs_path}: {e}")
-        return False
+    spark = SparkSession.builder \
+        .appName("Test ETL Pipeline") \
+        .getOrCreate()
+    return spark
+
+
+def test_extract(spark):
+    """
+    Test the extract function.
+    """
+    print("\n=== Starting Extract Test ===")
+    database = "HR_Analytics"
+    raw_table = "Raw_HR_Data"
+
+    # Execute extract
+    extract(table_name=raw_table, database=database)
+
+    # Verify table exists
+    if spark.catalog.tableExists(f"{database}.{raw_table}"):
+        print(f"Extract Test Passed: Table {database}.{raw_table} exists.")
     else:
-        # Use Spark commands
-        try:
-            files = dbutils.fs.ls(dbfs_path)
-            if files:
-                print(f"Files found in DBFS path {dbfs_path}: {[file.path for file in files]}")
-                return True
-            else:
-                print(f"No files found in DBFS path {dbfs_path}")
-                return False
-        except Exception as e:
-            print(f"Error while checking DBFS path {dbfs_path} with Spark: {e}")
-            return False
+        print(f"Extract Test Failed: Table {database}.{raw_table} does not exist.")
+    print("=== Extract Test Completed ===\n")
 
-# Example usage:
-dbfs_path = "dbfs:/mnt/transformed/Employee_Attrition_Data"
 
-# Check file using REST API
-if check_file_in_dbfs(dbfs_path, use_rest=True):
-    print("File exists using REST API.")
-else:
-    print("No file found using REST API.")
+def test_transform(spark):
+    """
+    Test the transform function.
+    """
+    print("\n=== Starting Transform Test ===")
+    database = "HR_Analytics"
+    raw_table = "Raw_HR_Data"
+    transformed_table = "Employee_Attrition_Data"
+    output_dbfs_path = "dbfs:/mnt/transformed/Employee_Attrition_Data"
+
+    # Execute transform
+    transform_data(database, raw_table, transformed_table, output_dbfs_path)
+
+    # Verify transformed table exists
+    if spark.catalog.tableExists(f"{database}.{transformed_table}"):
+        print(f"Transform Test Passed: Table {database}.{transformed_table} exists.")
+    else:
+        print(f"Transform Test Failed: Table {database}.{transformed_table} does not exist.")
+
+    # Verify DBFS file exists
+    print(f"Checking if transformed data is saved to DBFS at {output_dbfs_path}...")
+    try:
+        files = os.listdir(output_dbfs_path)
+        if len(files) > 0:
+            print(f"Transform Test Passed: Files saved in DBFS path {output_dbfs_path}.")
+        else:
+            print(f"Transform Test Failed: No files found in DBFS path {output_dbfs_path}.")
+    except Exception as e:
+        print(f"Transform Test Failed: Unable to access DBFS path {output_dbfs_path} - {e}")
+
+    print("=== Transform Test Completed ===\n")
+
+
+def test_load(spark):
+    """
+    Test the load function.
+    """
+    print("\n=== Starting Load Test ===")
+    database = "HR_Analytics"
+    transformed_table = "Employee_Attrition_Data"
+
+    # Execute load
+    try:
+        load_data(database, transformed_table)
+        print(f"Load Test Passed: Data loaded successfully from {database}.{transformed_table}.")
+    except Exception as e:
+        print(f"Load Test Failed: {e}")
+    print("=== Load Test Completed ===\n")
+
+
+def test_query(spark):
+    """
+    Test the query function (filter_and_save_data).
+    """
+    print("\n=== Starting Query Test ===")
+    database = "HR_Analytics"
+    source_table = "Employee_Attrition_Data"
+    target_table = "Employee_Attrition_Data_Filtered"
+
+    # Execute query to filter and save data
+    filter_and_save_data(database, source_table, target_table)
+
+    # Verify filtered table exists
+    if spark.catalog.tableExists(f"{database}.{target_table}"):
+        print(f"Query Test Passed: Table {database}.{target_table} exists.")
+    else:
+        print(f"Query Test Failed: Table {database}.{target_table} does not exist.")
+
+    # Verify the filtered table has expected columns
+    expected_columns = [
+        "EmployeeNumber",
+        "Age",
+        "Attrition",
+        "Department",
+        "Education",
+        "EducationField",
+        "EmployeeCount",
+    ]
+    actual_columns = [field.name for field in spark.table(f"{database}.{target_table}").schema]
+    if expected_columns == actual_columns:
+        print("Query Test Passed: Filtered table columns match expected columns.")
+    else:
+        print(
+            "Query Test Failed: Filtered table columns do not match. "
+            f"Expected: {expected_columns}, Actual: {actual_columns}"
+        )
+    print("=== Query Test Completed ===\n")
+
+
+if __name__ == "__main__":
+    # Initialize SparkSession
+    spark = create_spark_session()
+
+    try:
+        # Run tests
+        print("\n=== Starting ETL Tests ===\n")
+        test_extract(spark)
+        test_transform(spark)
+        test_load(spark)
+        test_query(spark)
+        print("\n=== All ETL Tests Completed Successfully ===\n")
+    finally:
+        # Stop SparkSession
+        print("=== Stopping Spark Session ===")
+        spark.stop()
+        print("Spark Session Stopped. Exiting...")
