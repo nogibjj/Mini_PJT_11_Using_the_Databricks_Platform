@@ -16,4 +16,4 @@ pyspark
 requests
 tabulate
 databricks-sql-connector
-
+pytest-spark
