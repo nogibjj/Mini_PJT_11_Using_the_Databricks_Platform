@@ -12,7 +12,7 @@ def create_spark_session():
     return SparkSession.builder.getOrCreate()
 
 
-def test_extract(spark):
+def test_extract(spark_session):
     """
     Test the extract function.
     """
