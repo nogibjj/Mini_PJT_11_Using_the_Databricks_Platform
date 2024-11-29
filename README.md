@@ -40,8 +40,5 @@
 * ![alttext](Databrick_pipeline.png)
 
 ### Remarks
-* Both `lib.py` and `main.py` generated logs. However, because the same process was repeated in `main.py`, this caused partial duplication in the log. To address this, `main.py`, deleted previous and rewrite the log.
-
-
-
-
+* In the `transform`, a DBFS file is created for reusuability of the table. This allows the cleaned dataset to be passed into `query` stage
+* In the `query`, SQL is used to extract only the required 7 columns and generate a new table for further analysis
