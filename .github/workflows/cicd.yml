@@ -41,6 +41,6 @@ jobs:
       - name: Format
         run: make format
 
-      # Deploy
-      - name: Deploy
-        run: make deploy
+      # # Deploy
+      # - name: Deploy
+      #   run: make deploy

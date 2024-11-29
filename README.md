@@ -1,47 +1,47 @@
-### `.env` included
-
 # IDS-706 Data Engineering Assignment
-## Mini Project 10 : Introduction_to_PySpark
+## Mini Project 11 : Using the Databricks Platform
 
 #### Status(CI/CD) badge 
-[![CICD](https://github.com/nogibjj/Mini_PJT_10_Introduction_to_PySpark/actions/workflows/cicd.yml/badge.svg)](https://github.com/nogibjj/Mini_PJT_10_Introduction_to_PySpark/actions/workflows/cicd.yml)
+[![CI](https://github.com/nogibjj/Mini_PJT_11_Using_the_Databricks_Platform/actions/workflows/cicd.yml/badge.svg)](https://github.com/nogibjj/Mini_PJT_11_Using_the_Databricks_Platform/actions/workflows/cicd.yml)
 
 ---------
 ### Proejct Purpose
 
-- This project uses PySpark to process a large dataset, focusing on running Spark SQL queries and performing data transformations. I am working with IBM's employee attrition dataset for these tasks.
+- The purpose of this project is to build ETL-Query (Extract, Transform, Load, Query) pipeline via Python and Databricks
+- I imported employee attrition dataset and pass it into a Databricks Delta table
+- I established a connection Databricks and transform the data, building required data processing via SparkSQL queries
 
 -----
 
 ### Requirements
 
-* ***Use PySpark to perform data processing on a large dataset***
-* ***Include at least one Spark SQL query and on data transformation***
+* ***Create a data pipiline using Databricks***
+* ***Include at least one data source and one data sink***
 
 ### Deliverables
 
-* ***PySpark script***
-* ***OUtput data or summaruy report(PDF or markdown)***
+* ***Databricks notebook or script***
+* ***Document demonstrating the pipeline***
 
 --------
 
 ### Preperation
-* Run 'Codespaces'  
-* Setup 'Pyspark' operation environment
-* Dataset :[Employee Attrition data](Data/HR_1.csv) provided by IBM
+* Setting up Databricks - GitHub connection via API access tokens 
+* Dataset : 'Employee Attrition data' provided by IBM (reusing the path uploaded in the previous repository)
 
 ### Process
 
-* `extract` : Downloads the dataset from the specified URL 
-* `start_spark` : Initiate a Spark session
-* `load_data` : Load the dataset from a CSV file into Spark Data Frame, Selecting only 7 of the 36 columns and creating sample data
-* `describe` : Generates descriptive statistice(e.g: Count, Mean)
-* `query` : Operates SQL query on the dataset using Spark SQL, based on Attrition values ('Yes', 'No')
-* `example_transform` : transforms the dataset by indexing categorical variables as intergers
+* `extract` : Downloads a dataset from a specified URL, cleans column names, and saves it as a Delta table in a specified Databricks DB.
+* `transform` : Handles missing values, saves cleaned the data as a new Delta table, and exports it to DBFS for data sink.
+* `load` : Checks if the table exists in a Databricks DB and, executes queries and displays the results using Spark. 
+* `query` : Filters selected columns from a table and saves the result as a new Delta table in a Databricks DB.
 
-
-### Console log file
-* [PySpark Output File](pyspark_output.md)
+### Workflow
+* ![alttext](Databrick_pipeline.png)
 
 ### Remarks
 * Both `lib.py` and `main.py` generated logs. However, because the same process was repeated in `main.py`, this caused partial duplication in the log. To address this, `main.py`, deleted previous and rewrite the log.
+
+
+
+
