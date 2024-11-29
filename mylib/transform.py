@@ -19,6 +19,7 @@ def transform_data(database, raw_table, transformed_table, output_dbfs_path):
     try:
         # Initialize SparkSession
         spark = SparkSession.builder.getOrCreate()
+        output_dbfs_path = os.getenv("FILESTORE_PATH", "dbfs:/FileStore/mini_project11/transformed_data")
 
         # Check if the raw table exists
         if not spark.catalog.tableExists(f"{database}.{raw_table}"):
